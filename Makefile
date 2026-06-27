@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status
 
 start:
 >./scripts/compose.sh up -d
@@ -226,3 +226,13 @@ portal-status:
 
 portal-test:
 >./scripts/portal-test.sh
+
+
+portal-public:
+>./scripts/compose.sh up -d customer-portal
+
+portal-public-test:
+>./scripts/portal-public-test.sh
+
+portal-public-status:
+>./scripts/portal-public-status.sh
