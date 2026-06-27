@@ -2,10 +2,10 @@
 *.env
 !.env.example
 
-logs/
-storage/
-backups/
-ssl/
+/logs/
+/storage/
+/backups/
+/ssl/
 
 *.log
 *.pid
