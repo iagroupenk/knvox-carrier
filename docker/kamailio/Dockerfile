@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     kamailio-extra-modules \
     kamailio-utils-modules \
     kamailio-tls-modules \
+    curl \
+    jq \
     sngrep \
     tcpdump \
     iproute2 \
