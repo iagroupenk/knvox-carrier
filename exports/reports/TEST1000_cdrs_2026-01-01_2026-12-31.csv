@@ -1,0 +1,6 @@
+call_id,customer_code,src,dst,destination,duration_sec,rate_per_min,cost,currency,status,created_at
+fraud-test-cps-a-1782597324,TEST1000,1000,9996,Internal,1,0.0,0.0,EUR,rated,2026-06-27T23:55:34.272930+02:00
+fraud-test-internal-1782597324,TEST1000,1000,9996,Internal,2,0.0,0.0,EUR,rated,2026-06-27T23:55:29.167800+02:00
+api-lifecycle-9996-1782597005,TEST1000,1000,9996,Internal,2,0.0,0.0,EUR,rated,2026-06-27T23:50:07.714800+02:00
+api-lifecycle-9996-1782596709,TEST1000,1000,9996,Internal,2,0.0,0.0,EUR,rated,2026-06-27T23:45:11.182321+02:00
+knvox-test-20260627204738,TEST1000,1000,33612345678,France Test,60,0.01,0.01,EUR,rated,2026-06-27T22:47:38.996028+02:00

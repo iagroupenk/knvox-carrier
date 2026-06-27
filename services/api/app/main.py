@@ -1,11 +1,13 @@
 import os
+import csv
+import io
 import uuid
 from decimal import Decimal
 from typing import Optional, Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 
@@ -33,6 +35,8 @@ def db_connect():
 def json_safe(value: Any) -> Any:
     if isinstance(value, Decimal):
         return float(value)
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
     return value
 
 
@@ -115,6 +119,12 @@ class BlockedPrefixRequest(BaseModel):
     reason: str = Field(..., min_length=2, max_length=255)
 
 
+
+class InvoiceExportRequest(BaseModel):
+    date_from: str = Field(..., min_length=10, max_length=10)
+    date_to: str = Field(..., min_length=10, max_length=10)
+
+
 class ProviderRouteAdminRequest(BaseModel):
     provider_code: str = Field(..., min_length=2, max_length=64)
     prefix: str = Field(..., min_length=1, max_length=32)
@@ -131,7 +141,7 @@ class FraudLockRequest(BaseModel):
     fraud_locked: bool
 
 
-app = FastAPI(title=APP_NAME, version="1.4.1")
+app = FastAPI(title=APP_NAME, version="1.4.2")
 
 
 @app.get("/health")
@@ -755,6 +765,184 @@ def rate_admin_events(x_knvox_api_key: Optional[str] = Header(default=None)):
                     provider_code,
                     details
                 FROM billing.rate_admin_events
+                ORDER BY created_at DESC
+                LIMIT 100;
+            """)
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+
+@app.get("/api/v1/reports/customers/{customer_code}/usage")
+def report_customer_usage(
+    customer_code: str,
+    date_from: str = Query(default="1970-01-01"),
+    date_to: str = Query(default="2999-12-31"),
+    x_knvox_api_key: Optional[str] = Header(default=None)
+):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.customer_usage_summary(%s, %s::date, %s::date);",
+                (customer_code, date_from, date_to),
+            )
+            row = cur.fetchone()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/reports/customers/{customer_code}/margin")
+def report_customer_margin(
+    customer_code: str,
+    date_from: str = Query(default="1970-01-01"),
+    date_to: str = Query(default="2999-12-31"),
+    x_knvox_api_key: Optional[str] = Header(default=None)
+):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.customer_margin_summary(%s, %s::date, %s::date);",
+                (customer_code, date_from, date_to),
+            )
+            row = cur.fetchone()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/reports/customers/{customer_code}/wallet")
+def report_customer_wallet(
+    customer_code: str,
+    x_knvox_api_key: Optional[str] = Header(default=None)
+):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    created_at,
+                    customer_code,
+                    amount,
+                    currency,
+                    type,
+                    reference
+                FROM billing.wallet_transactions
+                WHERE customer_code = %s
+                ORDER BY created_at DESC
+                LIMIT 200;
+            """, (customer_code,))
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+@app.get("/api/v1/reports/customers/{customer_code}/cdrs.csv")
+def export_customer_cdrs_csv(
+    customer_code: str,
+    date_from: str = Query(default="1970-01-01"),
+    date_to: str = Query(default="2999-12-31"),
+    x_knvox_api_key: Optional[str] = Header(default=None)
+):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    call_id,
+                    customer_code,
+                    src,
+                    dst,
+                    destination,
+                    duration_sec,
+                    rate_per_min,
+                    cost,
+                    currency,
+                    status,
+                    created_at
+                FROM billing.cdrs
+                WHERE customer_code = %s
+                  AND created_at >= %s::date
+                  AND created_at < (%s::date + 1)
+                ORDER BY created_at DESC;
+            """, (customer_code, date_from, date_to))
+            rows = cur.fetchall()
+
+    output = io.StringIO()
+    fieldnames = [
+        "call_id",
+        "customer_code",
+        "src",
+        "dst",
+        "destination",
+        "duration_sec",
+        "rate_per_min",
+        "cost",
+        "currency",
+        "status",
+        "created_at",
+    ]
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+
+    for row in rows:
+        safe = row_to_json(dict(row))
+        writer.writerow({k: safe.get(k, "") for k in fieldnames})
+
+    filename = f"{customer_code}_cdrs_{date_from}_{date_to}.csv"
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@app.post("/api/v1/reports/customers/{customer_code}/invoice-export")
+def create_invoice_export(
+    customer_code: str,
+    payload: InvoiceExportRequest,
+    x_knvox_api_key: Optional[str] = Header(default=None)
+):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.create_invoice_export(%s, %s::date, %s::date);",
+                (customer_code, payload.date_from, payload.date_to),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/reports/invoice-exports")
+def list_invoice_exports(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    id,
+                    customer_code,
+                    period_start,
+                    period_end,
+                    total_calls,
+                    billable_calls,
+                    total_duration_sec,
+                    total_cost,
+                    currency,
+                    status,
+                    created_at
+                FROM billing.invoice_exports
                 ORDER BY created_at DESC
                 LIMIT 100;
             """)
