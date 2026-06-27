@@ -1,14 +1,14 @@
 .RECIPEPREFIX := >
-.PHONY: start stop restart status health logs backup pull update firewall
+.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony
 
 start:
->docker compose up -d
+>./scripts/compose.sh up -d
 
 stop:
->docker compose down
+>./scripts/compose.sh down
 
 restart:
->docker compose restart
+>./scripts/compose.sh restart
 
 status:
 >./scripts/status.sh
@@ -23,11 +23,26 @@ backup:
 >./scripts/backup.sh
 
 pull:
->docker compose pull
+>./scripts/compose.sh pull
 
 update:
->docker compose pull
->docker compose up -d
+>./scripts/compose.sh pull
+>./scripts/compose.sh up -d
 
 firewall:
 >./scripts/firewall.sh
+
+telephony:
+>./scripts/compose.sh up -d --build freeswitch rtpengine kamailio
+
+telephony-status:
+>./scripts/telephony-status.sh
+
+fs:
+>./scripts/fs_cli.sh
+
+sip-users:
+>./scripts/show-sip-users.sh
+
+firewall-telephony:
+>./scripts/firewall-telephony.sh

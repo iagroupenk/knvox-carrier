@@ -13,7 +13,7 @@ systemctl is-active docker || true
 echo ""
 
 echo "Containers:"
-docker compose ps
+./scripts/compose.sh ps
 echo ""
 
 echo "URLs:"
@@ -24,4 +24,12 @@ if [ -f .env ]; then
   echo "MinIO     : https://minio.${DOMAIN}"
   echo "RabbitMQ  : https://rabbitmq.${DOMAIN}"
   echo "Status    : https://status.${DOMAIN}"
+fi
+
+echo ""
+echo "Telephony:"
+if [ -f .env ]; then
+  SIP_DOMAIN=$(grep '^SIP_DOMAIN=' .env | cut -d= -f2)
+  KAMAILIO_SIP_PORT=$(grep '^KAMAILIO_SIP_PORT=' .env | cut -d= -f2)
+  echo "SIP       : ${SIP_DOMAIN}:${KAMAILIO_SIP_PORT}"
 fi

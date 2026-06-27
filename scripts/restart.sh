@@ -1,2 +1,4 @@
 #!/bin/bash
-docker compose restart
+set -e
+cd "$(dirname "$0")/.."
+./scripts/compose.sh restart

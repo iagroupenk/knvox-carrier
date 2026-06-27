@@ -1,2 +1,4 @@
 #!/bin/bash
-docker compose down
+set -e
+cd "$(dirname "$0")/.."
+./scripts/compose.sh down

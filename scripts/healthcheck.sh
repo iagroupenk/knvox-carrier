@@ -19,8 +19,8 @@ fi
 
 echo ""
 
-for svc in $(docker compose ps --services); do
-  CID=$(docker compose ps -q "$svc" || true)
+for svc in $(./scripts/compose.sh ps --services); do
+  CID=$(./scripts/compose.sh ps -q "$svc" || true)
 
   if [ -z "$CID" ]; then
     echo "ERROR: $svc has no container"
