@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>KNVOX Carrier Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    header {
+      padding: 22px 28px;
+      background: #111827;
+      border-bottom: 1px solid #374151;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    header p {
+      margin: 6px 0 0;
+      color: #9ca3af;
+    }
+    main {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 20px;
+    }
+    nav {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 16px;
+      height: fit-content;
+    }
+    button {
+      width: 100%;
+      margin: 6px 0;
+      padding: 11px;
+      border: 0;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button.secondary {
+      background: #374151;
+    }
+    button.danger {
+      background: #991b1b;
+    }
+    section {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 18px;
+      overflow: auto;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .card {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .card .label {
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    .card .value {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid #374151;
+      padding: 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: #93c5fd;
+      background: #1f2937;
+      position: sticky;
+      top: 0;
+    }
+    input {
+      width: calc(100% - 20px);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      margin: 6px 0 12px;
+    }
+    pre {
+      background: #020617;
+      color: #d1d5db;
+      padding: 14px;
+      border-radius: 10px;
+      overflow: auto;
+      border: 1px solid #374151;
+    }
+    .ok { color: #22c55e; }
+    .bad { color: #ef4444; }
+    .muted { color: #9ca3af; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>KNVOX Carrier Portal</h1>
+  <p>Portail interne — Billing, clients, CDR, tarifs et routes sandbox</p>
+</header>
+
+<main>
+  <nav>
+    <button onclick="loadStatus()">Dashboard</button>
+    <button onclick="loadCustomers()">Clients</button>
+    <button onclick="loadRates()">Tarifs vente</button>
+    <button onclick="loadBlocked()">Préfixes bloqués</button>
+    <button onclick="loadProviders()">Routes fournisseurs</button>
+    <button onclick="loadInvoices()">Exports factures</button>
+    <hr>
+    <label class="muted">Client code</label>
+    <input id="customerCode" value="TEST1000">
+    <button class="secondary" onclick="loadCustomer()">Détail client</button>
+    <button class="secondary" onclick="loadCustomerCdrs()">CDR client</button>
+    <button class="secondary" onclick="loadUsage()">Rapport usage</button>
+    <button class="secondary" onclick="loadMargin()">Rapport marge</button>
+    <button class="secondary" onclick="loadWallet()">Wallet</button>
+    <hr>
+    <button class="danger" onclick="runRouteTest()">Test route France</button>
+  </nav>
+
+  <section>
+    <h2 id="title">Dashboard</h2>
+    <div id="content">Chargement...</div>
+  </section>
+</main>
+
+<script>
+const api = path => `/api/v1${path}`;
+
+function setTitle(t) {
+  document.getElementById("title").innerText = t;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function renderJson(data) {
+  document.getElementById("content").innerHTML =
+    `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+}
+
+function renderTable(rows) {
+  if (!Array.isArray(rows)) return renderJson(rows);
+  if (rows.length === 0) {
+    document.getElementById("content").innerHTML = "<p class='muted'>Aucune donnée.</p>";
+    return;
+  }
+  const keys = Object.keys(rows[0]);
+  let html = "<table><thead><tr>";
+  keys.forEach(k => html += `<th>${escapeHtml(k)}</th>`);
+  html += "</tr></thead><tbody>";
+  rows.forEach(row => {
+    html += "<tr>";
+    keys.forEach(k => html += `<td>${escapeHtml(row[k])}</td>`);
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+  document.getElementById("content").innerHTML = html;
+}
+
+async function getJson(path) {
+  const res = await fetch(api(path));
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return await res.json();
+}
+
+async function postJson(path, body) {
+  const res = await fetch(api(path), {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return await res.json();
+}
+
+async function safeRun(title, fn, table=false) {
+  setTitle(title);
+  document.getElementById("content").innerHTML = "<p>Chargement...</p>";
+  try {
+    const data = await fn();
+    table ? renderTable(data) : renderJson(data);
+  } catch (e) {
+    document.getElementById("content").innerHTML =
+      `<pre class="bad">${escapeHtml(e.message)}</pre>`;
+  }
+}
+
+async function loadStatus() {
+  safeRun("Dashboard", async () => {
+    const s = await getJson("/status");
+    document.getElementById("content").innerHTML = `
+      <div class="cards">
+        <div class="card"><div class="label">PSTN</div><div class="value ${s.pstn_enabled === "false" ? "ok" : "bad"}">${escapeHtml(s.pstn_enabled)}</div></div>
+        <div class="card"><div class="label">Clients</div><div class="value">${escapeHtml(s.customers)}</div></div>
+        <div class="card"><div class="label">CDR</div><div class="value">${escapeHtml(s.cdrs)}</div></div>
+        <div class="card"><div class="label">Routes</div><div class="value">${escapeHtml(s.provider_routes)}</div></div>
+        <div class="card"><div class="label">Fraude</div><div class="value">${escapeHtml(s.fraud_events)}</div></div>
+      </div>
+      <pre>${escapeHtml(JSON.stringify(s, null, 2))}</pre>
+    `;
+    return null;
+  });
+}
+
+async function loadCustomers() {
+  safeRun("Clients", () => getJson("/customers"), true);
+}
+
+async function loadRates() {
+  safeRun("Tarifs de vente", () => getJson("/rates"), true);
+}
+
+async function loadBlocked() {
+  safeRun("Préfixes bloqués", () => getJson("/blocked-prefixes"), true);
+}
+
+async function loadProviders() {
+  safeRun("Routes fournisseurs sandbox", () => getJson("/provider-routes"), true);
+}
+
+async function loadInvoices() {
+  safeRun("Exports factures", () => getJson("/reports/invoice-exports"), true);
+}
+
+async function loadCustomer() {
+  const c = document.getElementById("customerCode").value;
+  safeRun(`Client ${c}`, () => getJson(`/customers/${encodeURIComponent(c)}`));
+}
+
+async function loadCustomerCdrs() {
+  const c = document.getElementById("customerCode").value;
+  safeRun(`CDR ${c}`, () => getJson(`/customers/${encodeURIComponent(c)}/cdrs`), true);
+}
+
+async function loadUsage() {
+  const c = document.getElementById("customerCode").value;
+  safeRun(`Usage ${c}`, () => getJson(`/reports/customers/${encodeURIComponent(c)}/usage?date_from=2026-01-01&date_to=2026-12-31`));
+}
+
+async function loadMargin() {
+  const c = document.getElementById("customerCode").value;
+  safeRun(`Marge ${c}`, () => getJson(`/reports/customers/${encodeURIComponent(c)}/margin?date_from=2026-01-01&date_to=2026-12-31`));
+}
+
+async function loadWallet() {
+  const c = document.getElementById("customerCode").value;
+  safeRun(`Wallet ${c}`, () => getJson(`/reports/customers/${encodeURIComponent(c)}/wallet`), true);
+}
+
+async function runRouteTest() {
+  const c = document.getElementById("customerCode").value;
+  safeRun(`Test route France ${c}`, () => postJson("/provider-route-simulate", {
+    customer_code: c,
+    src: "1000",
+    dst: "33612345678",
+    call_id: "portal-route-test-" + Date.now()
+  }));
+}
+
+loadStatus();
+</script>
+</body>
+</html>

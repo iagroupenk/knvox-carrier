@@ -17,4 +17,8 @@ if [ -f compose/api/docker-compose.yml ]; then
   FILES+=(-f compose/api/docker-compose.yml)
 fi
 
+if [ -f compose/frontend/docker-compose.yml ]; then
+  FILES+=(-f compose/frontend/docker-compose.yml)
+fi
+
 exec docker compose "${FILES[@]}" "$@"
