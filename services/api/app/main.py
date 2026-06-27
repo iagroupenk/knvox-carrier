@@ -2,6 +2,7 @@ import os
 import csv
 import io
 import uuid
+import secrets
 from decimal import Decimal
 from typing import Optional, Any, Dict, List
 
@@ -120,6 +121,24 @@ class BlockedPrefixRequest(BaseModel):
 
 
 
+
+class SipAccountRequest(BaseModel):
+    username: str = Field(..., min_length=2, max_length=64)
+    customer_code: str = Field(..., min_length=2, max_length=64)
+    display_name: Optional[str] = None
+    auth_password: Optional[str] = None
+    realm: str = "knvox.local"
+    enabled: bool = True
+    cps_limit: int = 1
+    max_concurrent_calls: int = 2
+    allowed_ip_cidr: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class SipAccountStatusRequest(BaseModel):
+    enabled: bool
+
+
 class InvoiceExportRequest(BaseModel):
     date_from: str = Field(..., min_length=10, max_length=10)
     date_to: str = Field(..., min_length=10, max_length=10)
@@ -141,7 +160,7 @@ class FraudLockRequest(BaseModel):
     fraud_locked: bool
 
 
-app = FastAPI(title=APP_NAME, version="1.4.2")
+app = FastAPI(title=APP_NAME, version="1.4.5")
 
 
 @app.get("/health")
@@ -943,6 +962,162 @@ def list_invoice_exports(x_knvox_api_key: Optional[str] = Header(default=None)):
                     status,
                     created_at
                 FROM billing.invoice_exports
+                ORDER BY created_at DESC
+                LIMIT 100;
+            """)
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+
+@app.get("/api/v1/sip-accounts")
+def list_sip_accounts(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    username,
+                    customer_code,
+                    display_name,
+                    realm,
+                    enabled,
+                    cps_limit,
+                    max_concurrent_calls,
+                    allowed_ip_cidr,
+                    notes,
+                    created_at,
+                    updated_at
+                FROM billing.sip_accounts
+                ORDER BY customer_code, username;
+            """)
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+@app.post("/api/v1/sip-accounts")
+def upsert_sip_account(payload: SipAccountRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    password = payload.auth_password or secrets.token_urlsafe(18)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.upsert_sip_account(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);",
+                (
+                    payload.username,
+                    payload.customer_code,
+                    payload.display_name or payload.username,
+                    password,
+                    payload.realm,
+                    payload.enabled,
+                    payload.cps_limit,
+                    payload.max_concurrent_calls,
+                    payload.allowed_ip_cidr,
+                    payload.notes,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    result = row_to_json(dict(row))
+    result["auth_password"] = password
+    result["warning"] = "Password returned for provisioning. Store securely."
+    return result
+
+
+@app.get("/api/v1/sip-accounts/{username}")
+def get_sip_account(username: str, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    username,
+                    customer_code,
+                    display_name,
+                    realm,
+                    enabled,
+                    cps_limit,
+                    max_concurrent_calls,
+                    allowed_ip_cidr,
+                    notes,
+                    created_at,
+                    updated_at
+                FROM billing.sip_accounts
+                WHERE username = %s;
+            """, (username,))
+            row = cur.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="SIP account not found")
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/customers/{customer_code}/sip-accounts")
+def customer_sip_accounts(customer_code: str, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    username,
+                    customer_code,
+                    display_name,
+                    realm,
+                    enabled,
+                    cps_limit,
+                    max_concurrent_calls,
+                    allowed_ip_cidr,
+                    notes,
+                    created_at,
+                    updated_at
+                FROM billing.sip_accounts
+                WHERE customer_code = %s
+                ORDER BY username;
+            """, (customer_code,))
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+@app.post("/api/v1/sip-accounts/{username}/status")
+def set_sip_account_status(username: str, payload: SipAccountStatusRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.set_sip_account_status(%s,%s);",
+                (username, payload.enabled),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/sip-account-events")
+def sip_account_events(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    created_at,
+                    username,
+                    customer_code,
+                    event_type,
+                    details
+                FROM billing.sip_account_events
                 ORDER BY created_at DESC
                 LIMIT 100;
             """)

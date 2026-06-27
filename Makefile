@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events
 
 start:
 >./scripts/compose.sh up -d
@@ -236,3 +236,28 @@ portal-public-test:
 
 portal-public-status:
 >./scripts/portal-public-status.sh
+
+
+sip-account-admin:
+>./scripts/compose.sh up -d --build billing-api customer-portal
+
+sip-account-test:
+>./scripts/sip-account-test.sh
+
+sip-account-list:
+>./scripts/sip-account-list.sh
+
+sip-account-create:
+>./scripts/sip-account-create.sh
+
+sip-account-show:
+>./scripts/sip-account-show.sh
+
+customer-sip-accounts:
+>./scripts/customer-sip-accounts.sh
+
+sip-account-status:
+>./scripts/sip-account-status.sh
+
+sip-account-events:
+>./scripts/sip-account-events.sh

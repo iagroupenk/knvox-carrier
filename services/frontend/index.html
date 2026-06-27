@@ -135,6 +135,7 @@
     <button onclick="loadRates()">Tarifs vente</button>
     <button onclick="loadBlocked()">Préfixes bloqués</button>
     <button onclick="loadProviders()">Routes fournisseurs</button>
+    <button onclick="loadSipAccounts()">Comptes SIP</button>
     <button onclick="loadInvoices()">Exports factures</button>
     <hr>
     <label class="muted">Client code</label>
@@ -251,6 +252,10 @@ async function loadBlocked() {
 
 async function loadProviders() {
   safeRun("Routes fournisseurs sandbox", () => getJson("/provider-routes"), true);
+}
+
+async function loadSipAccounts() {
+  safeRun("Comptes SIP", () => getJson("/sip-accounts"), true);
 }
 
 async function loadInvoices() {
