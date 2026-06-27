@@ -16,3 +16,12 @@ __pycache__/
 node_modules/
 dist/
 build/
+
+# Generated config backups
+configs/**/*.bak.*
+configs/**/*.backup.*
+configs/**/*.tgz
+configs/*.tgz
+
+# Local generated bootstrap/fix scripts can remain local
+knvox-v1-*.sh
