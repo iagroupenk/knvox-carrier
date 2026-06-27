@@ -53,12 +53,20 @@ class AuthorizeCallRequest(BaseModel):
     call_id: Optional[str] = None
 
 
+
+class ProviderRouteSimulateRequest(BaseModel):
+    customer_code: str = Field(..., min_length=1, max_length=64)
+    src: str = Field(..., min_length=1, max_length=64)
+    dst: str = Field(..., min_length=1, max_length=64)
+    call_id: Optional[str] = None
+
+
 class EndCallRequest(BaseModel):
     call_id: str = Field(..., min_length=1, max_length=256)
     reason: Optional[str] = "normal"
 
 
-app = FastAPI(title=APP_NAME, version="1.3.7")
+app = FastAPI(title=APP_NAME, version="1.3.9")
 
 
 @app.get("/health")
@@ -165,6 +173,58 @@ def cleanup_active_calls(x_knvox_api_key: Optional[str] = Header(default=None)):
             conn.commit()
 
     return row_to_json(dict(row))
+
+
+
+@app.post("/api/v1/provider-route-simulate")
+def provider_route_simulate(payload: ProviderRouteSimulateRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    call_id = payload.call_id or f"route-{uuid.uuid4()}"
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.provider_route_simulate(%s, %s, %s, %s);",
+                (payload.customer_code, payload.src, payload.dst, call_id),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    if row is None:
+        raise HTTPException(status_code=500, detail="No provider route result")
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/provider-routes")
+def provider_routes(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    pa.code AS provider_code,
+                    pa.name AS provider_name,
+                    pa.status,
+                    pa.enabled,
+                    pa.trunk_enabled,
+                    pr.prefix,
+                    pr.destination,
+                    pr.buy_rate_per_min,
+                    pr.minimum_sec,
+                    pr.increment_sec,
+                    pr.priority
+                FROM billing.provider_accounts pa
+                LEFT JOIN billing.provider_routes pr ON pr.provider_code = pa.code
+                ORDER BY pa.priority ASC, pr.priority ASC, pr.prefix;
+                """
+            )
+            rows = cur.fetchall()
+
+    return [row_to_json(dict(row)) for row in rows]
 
 
 @app.get("/api/v1/status")
