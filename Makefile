@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony
+.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs
 
 start:
 >./scripts/compose.sh up -d
@@ -46,3 +46,9 @@ sip-users:
 
 firewall-telephony:
 >./scripts/firewall-telephony.sh
+
+sip-security-test:
+>./scripts/sip-security-test.sh
+
+sip-security-logs:
+>./scripts/sip-security-logs.sh
