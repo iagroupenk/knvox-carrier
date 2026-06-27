@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs
+.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console
 
 start:
 >./scripts/compose.sh up -d
@@ -52,3 +52,21 @@ sip-security-test:
 
 sip-security-logs:
 >./scripts/sip-security-logs.sh
+
+billing:
+>./scripts/compose.sh up -d cgr-engine
+
+billing-status:
+>./scripts/billing-status.sh
+
+billing-db-init:
+>./scripts/billing-db-init.sh
+
+billing-sample-data:
+>./scripts/billing-sample-data.sh
+
+billing-cdr-test:
+>./scripts/billing-cdr-test.sh
+
+cgr-console:
+>./scripts/cgr-console.sh status

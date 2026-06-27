@@ -1,0 +1,27 @@
+services:
+
+  cgr-engine:
+    image: ${CGRATES_ENGINE_IMAGE}
+    container_name: knvox-cgr-engine
+    restart: unless-stopped
+    command:
+      - -config_path=/etc/cgrates
+      - -logger=*stdout
+    environment:
+      DOCKER_IP: 127.0.0.1
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CGRATES_JSONRPC_PORT: ${CGRATES_JSONRPC_PORT}
+      CGRATES_HTTP_PORT: ${CGRATES_HTTP_PORT}
+      TZ: ${TIMEZONE}
+    volumes:
+      - ./configs/cgrates:/etc/cgrates
+      - ./storage/billing/cgrates:/var/lib/cgrates
+      - ./storage/billing/cdr:/var/spool/cgrates/cdr
+    ports:
+      - "127.0.0.1:${CGRATES_JSONRPC_PORT}:2012"
+      - "127.0.0.1:${CGRATES_HTTP_PORT}:2080"
+    networks:
+      - backend
+      - database
