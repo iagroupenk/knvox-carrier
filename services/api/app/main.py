@@ -99,11 +99,39 @@ class CustomerStatusRequest(BaseModel):
     status: str = Field(..., pattern="^(active|suspended|closed)$")
 
 
+
+class SellRateRequest(BaseModel):
+    prefix: str = Field(..., min_length=1, max_length=32)
+    destination: str = Field(..., min_length=2, max_length=255)
+    rate_per_min: float = Field(..., ge=0)
+    setup_fee: float = 0.0
+    minimum_sec: int = 1
+    increment_sec: int = 1
+    enabled: bool = True
+
+
+class BlockedPrefixRequest(BaseModel):
+    prefix: str = Field(..., min_length=1, max_length=32)
+    reason: str = Field(..., min_length=2, max_length=255)
+
+
+class ProviderRouteAdminRequest(BaseModel):
+    provider_code: str = Field(..., min_length=2, max_length=64)
+    prefix: str = Field(..., min_length=1, max_length=32)
+    destination: str = Field(..., min_length=2, max_length=255)
+    buy_rate_per_min: float = Field(..., ge=0)
+    setup_fee: float = 0.0
+    minimum_sec: int = 1
+    increment_sec: int = 1
+    enabled: bool = True
+    priority: int = 100
+
+
 class FraudLockRequest(BaseModel):
     fraud_locked: bool
 
 
-app = FastAPI(title=APP_NAME, version="1.4.0")
+app = FastAPI(title=APP_NAME, version="1.4.1")
 
 
 @app.get("/health")
@@ -576,6 +604,160 @@ def customer_routing_decisions(customer_code: str, x_knvox_api_key: Optional[str
                 ORDER BY created_at DESC
                 LIMIT 100;
             """, (customer_code,))
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+
+@app.get("/api/v1/rates")
+def list_rates(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    prefix,
+                    destination,
+                    rate_per_min,
+                    setup_fee,
+                    minimum_sec,
+                    increment_sec,
+                    enabled
+                FROM billing.rate_prefixes
+                ORDER BY prefix;
+            """)
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+@app.post("/api/v1/rates")
+def upsert_rate(payload: SellRateRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.upsert_sell_rate(%s, %s, %s, %s, %s, %s, %s);",
+                (
+                    payload.prefix,
+                    payload.destination,
+                    payload.rate_per_min,
+                    payload.setup_fee,
+                    payload.minimum_sec,
+                    payload.increment_sec,
+                    payload.enabled,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.post("/api/v1/rates/{prefix}/disable")
+def disable_rate(prefix: str, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT billing.disable_sell_rate(%s) AS disabled;", (prefix,))
+            row = cur.fetchone()
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/blocked-prefixes")
+def list_blocked_prefixes(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT prefix, reason
+                FROM billing.blocked_prefixes
+                ORDER BY prefix;
+            """)
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+@app.post("/api/v1/blocked-prefixes")
+def upsert_blocked_prefix(payload: BlockedPrefixRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.upsert_blocked_prefix(%s, %s);",
+                (payload.prefix, payload.reason),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.delete("/api/v1/blocked-prefixes/{prefix}")
+def delete_blocked_prefix(prefix: str, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT billing.delete_blocked_prefix(%s) AS deleted;", (prefix,))
+            row = cur.fetchone()
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.post("/api/v1/provider-routes")
+def upsert_provider_route(payload: ProviderRouteAdminRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.upsert_provider_route_admin(%s, %s, %s, %s, %s, %s, %s, %s, %s);",
+                (
+                    payload.provider_code,
+                    payload.prefix,
+                    payload.destination,
+                    payload.buy_rate_per_min,
+                    payload.setup_fee,
+                    payload.minimum_sec,
+                    payload.increment_sec,
+                    payload.enabled,
+                    payload.priority,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/rate-admin-events")
+def rate_admin_events(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    created_at,
+                    event_type,
+                    prefix,
+                    provider_code,
+                    details
+                FROM billing.rate_admin_events
+                ORDER BY created_at DESC
+                LIMIT 100;
+            """)
             rows = cur.fetchall()
 
     return rows_to_json(rows)

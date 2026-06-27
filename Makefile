@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert
 
 start:
 >./scripts/compose.sh up -d
@@ -163,3 +163,31 @@ customer-fraud-lock:
 
 customer-cdrs:
 >./scripts/customer-cdrs.sh
+
+
+rate-admin:
+>./scripts/compose.sh up -d --build billing-api
+
+rate-admin-test:
+>./scripts/rate-admin-test.sh
+
+rate-list:
+>./scripts/rate-list.sh
+
+rate-upsert:
+>./scripts/rate-upsert.sh
+
+rate-disable:
+>./scripts/rate-disable.sh
+
+blocked-prefix-list:
+>./scripts/blocked-prefix-list.sh
+
+blocked-prefix-add:
+>./scripts/blocked-prefix-add.sh
+
+blocked-prefix-delete:
+>./scripts/blocked-prefix-delete.sh
+
+provider-route-upsert:
+>./scripts/provider-route-upsert.sh
