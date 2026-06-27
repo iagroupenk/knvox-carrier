@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test
+.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active
 
 start:
 >./scripts/compose.sh up -d
@@ -100,3 +100,12 @@ call-control:
 
 call-control-test:
 >./scripts/call-control-test.sh
+
+call-lifecycle:
+>./scripts/compose.sh up -d --build billing-api kamailio
+
+call-lifecycle-test:
+>./scripts/api-lifecycle-test.sh
+
+billing-cleanup-active:
+>./scripts/billing-cleanup-active.sh

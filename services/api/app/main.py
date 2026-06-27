@@ -40,6 +40,12 @@ def row_to_json(row: Dict[str, Any]) -> Dict[str, Any]:
     return {key: json_safe(value) for key, value in row.items()}
 
 
+def require_api_key(x_knvox_api_key: Optional[str]) -> None:
+    expected = get_env("BILLING_API_TOKEN")
+    if not x_knvox_api_key or x_knvox_api_key != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
 class AuthorizeCallRequest(BaseModel):
     customer_code: str = Field(..., min_length=1, max_length=64)
     src: str = Field(..., min_length=1, max_length=64)
@@ -47,25 +53,12 @@ class AuthorizeCallRequest(BaseModel):
     call_id: Optional[str] = None
 
 
-class AuthorizeCallResponse(BaseModel):
-    allowed: bool
-    reason: str
-    normalized_dst: str
-    customer_balance: float
-    active_calls: int
-    max_concurrent_calls: int
-    rate_per_min: float
-    estimated_min_cost: float
-    call_id: str
+class EndCallRequest(BaseModel):
+    call_id: str = Field(..., min_length=1, max_length=256)
+    reason: Optional[str] = "normal"
 
 
-app = FastAPI(title=APP_NAME, version="1.3.5")
-
-
-def require_api_key(x_knvox_api_key: Optional[str]) -> None:
-    expected = get_env("BILLING_API_TOKEN")
-    if not x_knvox_api_key or x_knvox_api_key != expected:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+app = FastAPI(title=APP_NAME, version="1.3.7")
 
 
 @app.get("/health")
@@ -80,46 +73,98 @@ def health():
         raise HTTPException(status_code=503, detail=str(exc))
 
 
-@app.post("/api/v1/authorize-call", response_model=AuthorizeCallResponse)
-def authorize_call(
-    payload: AuthorizeCallRequest,
-    x_knvox_api_key: Optional[str] = Header(default=None),
-):
+@app.post("/api/v1/authorize-call")
+def authorize_call(payload: AuthorizeCallRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
     require_api_key(x_knvox_api_key)
 
     call_id = payload.call_id or f"api-{uuid.uuid4()}"
 
-    sql = """
-        SELECT *
-        FROM billing.authorize_call(%s, %s, %s, %s);
-    """
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.authorize_call(%s, %s, %s, %s);",
+                (payload.customer_code, payload.src, payload.dst, call_id),
+            )
+            row = cur.fetchone()
+            conn.commit()
 
-    try:
-        with db_connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    sql,
-                    (
-                        payload.customer_code,
-                        payload.src,
-                        payload.dst,
-                        call_id,
-                    ),
-                )
-                row = cur.fetchone()
-                conn.commit()
+    if row is None:
+        raise HTTPException(status_code=500, detail="No authorization result")
 
-        if row is None:
-            raise HTTPException(status_code=500, detail="No authorization result")
+    result = row_to_json(dict(row))
+    result["call_id"] = call_id
+    return result
 
-        result = row_to_json(dict(row))
-        result["call_id"] = call_id
-        return result
 
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+@app.post("/api/v1/start-call")
+def start_call(payload: AuthorizeCallRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    call_id = payload.call_id or f"api-{uuid.uuid4()}"
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.start_call(%s, %s, %s, %s);",
+                (payload.customer_code, payload.src, payload.dst, call_id),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    if row is None:
+        raise HTTPException(status_code=500, detail="No start-call result")
+
+    return row_to_json(dict(row))
+
+
+@app.post("/api/v1/end-call")
+def end_call(payload: EndCallRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.end_call(%s, %s);",
+                (payload.call_id, payload.reason or "normal"),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    if row is None:
+        raise HTTPException(status_code=500, detail="No end-call result")
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/active-calls")
+def active_calls(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT call_id, customer_code, src, dst, normalized_dst, started_at, last_seen_at
+                FROM billing.active_calls
+                ORDER BY started_at DESC;
+                """
+            )
+            rows = cur.fetchall()
+
+    return [row_to_json(dict(row)) for row in rows]
+
+
+@app.post("/api/v1/cleanup-active-calls")
+def cleanup_active_calls(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT billing.cleanup_active_calls(360) AS cleaned;")
+            row = cur.fetchone()
+            conn.commit()
+
+    return row_to_json(dict(row))
 
 
 @app.get("/api/v1/status")
@@ -132,7 +177,8 @@ def status(x_knvox_api_key: Optional[str] = Header(default=None)):
             (SELECT count(*) FROM billing.customers) AS customers,
             (SELECT count(*) FROM billing.rate_prefixes WHERE enabled = true) AS active_rates,
             (SELECT count(*) FROM billing.blocked_prefixes) AS blocked_prefixes,
-            (SELECT count(*) FROM billing.active_calls) AS active_calls;
+            (SELECT count(*) FROM billing.active_calls) AS active_calls,
+            (SELECT count(*) FROM billing.cdrs) AS cdrs;
     """
 
     with db_connect() as conn:
