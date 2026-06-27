@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events call-control-multi call-control-multi-test call-control-resolve call-control-map
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events call-control-multi call-control-multi-test call-control-resolve call-control-map fs-sip-sync fs-sip-provisioning-test fs-sip-provisioning-status
 
 start:
 >./scripts/compose.sh up -d
@@ -274,3 +274,13 @@ call-control-resolve:
 
 call-control-map:
 >./scripts/call-control-map.sh
+
+
+fs-sip-sync:
+>./scripts/freeswitch-sync-sip-accounts.sh
+
+fs-sip-provisioning-test:
+>./scripts/freeswitch-sip-provisioning-test.sh
+
+fs-sip-provisioning-status:
+>./scripts/freeswitch-sip-provisioning-status.sh

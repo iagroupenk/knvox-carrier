@@ -25,3 +25,5 @@ configs/*.tgz
 
 # Local generated bootstrap/fix scripts can remain local
 knvox-v1-*.sh
+
+/exports/
