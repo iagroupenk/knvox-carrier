@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs
 
 start:
 >./scripts/compose.sh up -d
@@ -132,3 +132,34 @@ provider-routes:
 
 provider-route-test:
 >./scripts/provider-route-test.sh
+
+
+customer-admin:
+>./scripts/compose.sh up -d --build billing-api
+
+customer-admin-test:
+>./scripts/customer-admin-test.sh
+
+customer-list:
+>./scripts/customer-list.sh
+
+customer-create:
+>./scripts/customer-create.sh
+
+customer-show:
+>./scripts/customer-show.sh
+
+customer-credit:
+>./scripts/customer-credit.sh
+
+customer-limits:
+>./scripts/customer-limits.sh
+
+customer-status:
+>./scripts/customer-status.sh
+
+customer-fraud-lock:
+>./scripts/customer-fraud-lock.sh
+
+customer-cdrs:
+>./scripts/customer-cdrs.sh

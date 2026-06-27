@@ -3,7 +3,7 @@ services:
   billing-api:
     build:
       context: ./services/api
-    image: knvox/billing-api:1.3.9
+    image: knvox/billing-api:1.4.0
     container_name: knvox-billing-api
     restart: unless-stopped
     environment:

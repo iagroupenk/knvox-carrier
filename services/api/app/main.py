@@ -1,7 +1,7 @@
 import os
 import uuid
 from decimal import Decimal
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
@@ -40,6 +40,10 @@ def row_to_json(row: Dict[str, Any]) -> Dict[str, Any]:
     return {key: json_safe(value) for key, value in row.items()}
 
 
+def rows_to_json(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [row_to_json(dict(row)) for row in rows]
+
+
 def require_api_key(x_knvox_api_key: Optional[str]) -> None:
     expected = get_env("BILLING_API_TOKEN")
     if not x_knvox_api_key or x_knvox_api_key != expected:
@@ -53,6 +57,10 @@ class AuthorizeCallRequest(BaseModel):
     call_id: Optional[str] = None
 
 
+class EndCallRequest(BaseModel):
+    call_id: str = Field(..., min_length=1, max_length=256)
+    reason: Optional[str] = "normal"
+
 
 class ProviderRouteSimulateRequest(BaseModel):
     customer_code: str = Field(..., min_length=1, max_length=64)
@@ -61,12 +69,41 @@ class ProviderRouteSimulateRequest(BaseModel):
     call_id: Optional[str] = None
 
 
-class EndCallRequest(BaseModel):
-    call_id: str = Field(..., min_length=1, max_length=256)
-    reason: Optional[str] = "normal"
+class CustomerCreateRequest(BaseModel):
+    code: str = Field(..., min_length=2, max_length=64)
+    name: str = Field(..., min_length=2, max_length=255)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
+    prepaid_balance: float = 0.0
+    cps_limit: int = 1
+    max_concurrent_calls: int = 2
+    daily_spend_limit: float = 20.0
+    max_rate_per_min: float = 0.5
+    max_call_duration_sec: int = 3600
 
 
-app = FastAPI(title=APP_NAME, version="1.3.9")
+class CustomerCreditRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+    reference: Optional[str] = None
+    note: Optional[str] = None
+
+
+class CustomerLimitsRequest(BaseModel):
+    cps_limit: Optional[int] = None
+    max_concurrent_calls: Optional[int] = None
+    daily_spend_limit: Optional[float] = None
+    max_rate_per_min: Optional[float] = None
+    max_call_duration_sec: Optional[int] = None
+
+
+class CustomerStatusRequest(BaseModel):
+    status: str = Field(..., pattern="^(active|suspended|closed)$")
+
+
+class FraudLockRequest(BaseModel):
+    fraud_locked: bool
+
+
+app = FastAPI(title=APP_NAME, version="1.4.0")
 
 
 @app.get("/health")
@@ -84,7 +121,6 @@ def health():
 @app.post("/api/v1/authorize-call")
 def authorize_call(payload: AuthorizeCallRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
     require_api_key(x_knvox_api_key)
-
     call_id = payload.call_id or f"api-{uuid.uuid4()}"
 
     with db_connect() as conn:
@@ -96,9 +132,6 @@ def authorize_call(payload: AuthorizeCallRequest, x_knvox_api_key: Optional[str]
             row = cur.fetchone()
             conn.commit()
 
-    if row is None:
-        raise HTTPException(status_code=500, detail="No authorization result")
-
     result = row_to_json(dict(row))
     result["call_id"] = call_id
     return result
@@ -107,7 +140,6 @@ def authorize_call(payload: AuthorizeCallRequest, x_knvox_api_key: Optional[str]
 @app.post("/api/v1/start-call")
 def start_call(payload: AuthorizeCallRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
     require_api_key(x_knvox_api_key)
-
     call_id = payload.call_id or f"api-{uuid.uuid4()}"
 
     with db_connect() as conn:
@@ -118,9 +150,6 @@ def start_call(payload: AuthorizeCallRequest, x_knvox_api_key: Optional[str] = H
             )
             row = cur.fetchone()
             conn.commit()
-
-    if row is None:
-        raise HTTPException(status_code=500, detail="No start-call result")
 
     return row_to_json(dict(row))
 
@@ -138,9 +167,6 @@ def end_call(payload: EndCallRequest, x_knvox_api_key: Optional[str] = Header(de
             row = cur.fetchone()
             conn.commit()
 
-    if row is None:
-        raise HTTPException(status_code=500, detail="No end-call result")
-
     return row_to_json(dict(row))
 
 
@@ -150,16 +176,14 @@ def active_calls(x_knvox_api_key: Optional[str] = Header(default=None)):
 
     with db_connect() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
+            cur.execute("""
                 SELECT call_id, customer_code, src, dst, normalized_dst, started_at, last_seen_at
                 FROM billing.active_calls
                 ORDER BY started_at DESC;
-                """
-            )
+            """)
             rows = cur.fetchall()
 
-    return [row_to_json(dict(row)) for row in rows]
+    return rows_to_json(rows)
 
 
 @app.post("/api/v1/cleanup-active-calls")
@@ -175,11 +199,9 @@ def cleanup_active_calls(x_knvox_api_key: Optional[str] = Header(default=None)):
     return row_to_json(dict(row))
 
 
-
 @app.post("/api/v1/provider-route-simulate")
 def provider_route_simulate(payload: ProviderRouteSimulateRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
     require_api_key(x_knvox_api_key)
-
     call_id = payload.call_id or f"route-{uuid.uuid4()}"
 
     with db_connect() as conn:
@@ -191,9 +213,6 @@ def provider_route_simulate(payload: ProviderRouteSimulateRequest, x_knvox_api_k
             row = cur.fetchone()
             conn.commit()
 
-    if row is None:
-        raise HTTPException(status_code=500, detail="No provider route result")
-
     return row_to_json(dict(row))
 
 
@@ -203,8 +222,7 @@ def provider_routes(x_knvox_api_key: Optional[str] = Header(default=None)):
 
     with db_connect() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
+            cur.execute("""
                 SELECT
                     pa.code AS provider_code,
                     pa.name AS provider_name,
@@ -220,11 +238,347 @@ def provider_routes(x_knvox_api_key: Optional[str] = Header(default=None)):
                 FROM billing.provider_accounts pa
                 LEFT JOIN billing.provider_routes pr ON pr.provider_code = pa.code
                 ORDER BY pa.priority ASC, pr.priority ASC, pr.prefix;
-                """
-            )
+            """)
             rows = cur.fetchall()
 
-    return [row_to_json(dict(row)) for row in rows]
+    return rows_to_json(rows)
+
+
+@app.get("/api/v1/customers")
+def list_customers(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    code,
+                    name,
+                    status,
+                    currency,
+                    prepaid_balance,
+                    cps_limit,
+                    max_concurrent_calls,
+                    fraud_locked,
+                    daily_spend_limit,
+                    max_rate_per_min,
+                    max_call_duration_sec,
+                    created_at,
+                    updated_at
+                FROM billing.customers
+                ORDER BY code;
+            """)
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+@app.post("/api/v1/customers")
+def create_customer(payload: CustomerCreateRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO billing.customers(
+                    code,
+                    name,
+                    status,
+                    currency,
+                    prepaid_balance,
+                    max_concurrent_calls,
+                    cps_limit,
+                    fraud_locked,
+                    daily_spend_limit,
+                    max_rate_per_min,
+                    max_call_duration_sec,
+                    created_at,
+                    updated_at
+                )
+                VALUES (%s, %s, 'active', %s, %s, %s, %s, false, %s, %s, %s, now(), now())
+                ON CONFLICT (code) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    status = 'active',
+                    currency = EXCLUDED.currency,
+                    prepaid_balance = EXCLUDED.prepaid_balance,
+                    max_concurrent_calls = EXCLUDED.max_concurrent_calls,
+                    cps_limit = EXCLUDED.cps_limit,
+                    fraud_locked = false,
+                    daily_spend_limit = EXCLUDED.daily_spend_limit,
+                    max_rate_per_min = EXCLUDED.max_rate_per_min,
+                    max_call_duration_sec = EXCLUDED.max_call_duration_sec,
+                    updated_at = now()
+                RETURNING *;
+            """, (
+                payload.code,
+                payload.name,
+                payload.currency.upper(),
+                payload.prepaid_balance,
+                payload.max_concurrent_calls,
+                payload.cps_limit,
+                payload.daily_spend_limit,
+                payload.max_rate_per_min,
+                payload.max_call_duration_sec,
+            ))
+            row = cur.fetchone()
+
+            cur.execute("""
+                INSERT INTO billing.customer_admin_events(customer_code, event_type, amount, currency, reference, details)
+                VALUES (%s, 'customer_upsert', %s, %s, %s, jsonb_build_object('name', %s));
+            """, (
+                payload.code,
+                payload.prepaid_balance,
+                payload.currency.upper(),
+                f"admin-create-{uuid.uuid4()}",
+                payload.name,
+            ))
+
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/customers/{customer_code}")
+def get_customer(customer_code: str, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM billing.customer_summary(%s);", (customer_code,))
+            row = cur.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    return row_to_json(dict(row))
+
+
+@app.post("/api/v1/customers/{customer_code}/credit")
+def credit_customer(customer_code: str, payload: CustomerCreditRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+    reference = payload.reference or f"credit-{uuid.uuid4()}"
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE billing.customers
+                SET prepaid_balance = prepaid_balance + %s,
+                    updated_at = now()
+                WHERE code = %s
+                RETURNING code, prepaid_balance, currency;
+            """, (payload.amount, customer_code))
+            row = cur.fetchone()
+
+            if row is None:
+                raise HTTPException(status_code=404, detail="Customer not found")
+
+            cur.execute("""
+                INSERT INTO billing.wallet_transactions(customer_code, amount, currency, type, reference)
+                VALUES (%s, %s, %s, 'admin_credit', %s);
+            """, (customer_code, payload.amount, row["currency"], reference))
+
+            cur.execute("""
+                INSERT INTO billing.customer_admin_events(customer_code, event_type, amount, currency, reference, details)
+                VALUES (%s, 'credit', %s, %s, %s, jsonb_build_object('note', %s));
+            """, (customer_code, payload.amount, row["currency"], reference, payload.note or ""))
+
+            conn.commit()
+
+    return {"customer_code": customer_code, "credited": payload.amount, "balance": json_safe(row["prepaid_balance"]), "reference": reference}
+
+
+@app.post("/api/v1/customers/{customer_code}/limits")
+def update_customer_limits(customer_code: str, payload: CustomerLimitsRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE billing.customers
+                SET
+                    cps_limit = COALESCE(%s, cps_limit),
+                    max_concurrent_calls = COALESCE(%s, max_concurrent_calls),
+                    daily_spend_limit = COALESCE(%s, daily_spend_limit),
+                    max_rate_per_min = COALESCE(%s, max_rate_per_min),
+                    max_call_duration_sec = COALESCE(%s, max_call_duration_sec),
+                    updated_at = now()
+                WHERE code = %s
+                RETURNING *;
+            """, (
+                payload.cps_limit,
+                payload.max_concurrent_calls,
+                payload.daily_spend_limit,
+                payload.max_rate_per_min,
+                payload.max_call_duration_sec,
+                customer_code,
+            ))
+            row = cur.fetchone()
+
+            if row is None:
+                raise HTTPException(status_code=404, detail="Customer not found")
+
+            cur.execute("""
+                INSERT INTO billing.customer_admin_events(customer_code, event_type, details)
+                VALUES (%s, 'limits_update', jsonb_build_object(
+                    'cps_limit', %s,
+                    'max_concurrent_calls', %s,
+                    'daily_spend_limit', %s,
+                    'max_rate_per_min', %s,
+                    'max_call_duration_sec', %s
+                ));
+            """, (
+                customer_code,
+                payload.cps_limit,
+                payload.max_concurrent_calls,
+                payload.daily_spend_limit,
+                payload.max_rate_per_min,
+                payload.max_call_duration_sec,
+            ))
+
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.post("/api/v1/customers/{customer_code}/status")
+def update_customer_status(customer_code: str, payload: CustomerStatusRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE billing.customers
+                SET status = %s,
+                    updated_at = now()
+                WHERE code = %s
+                RETURNING code, status;
+            """, (payload.status, customer_code))
+            row = cur.fetchone()
+
+            if row is None:
+                raise HTTPException(status_code=404, detail="Customer not found")
+
+            cur.execute("""
+                INSERT INTO billing.customer_admin_events(customer_code, event_type, details)
+                VALUES (%s, 'status_update', jsonb_build_object('status', %s));
+            """, (customer_code, payload.status))
+
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.post("/api/v1/customers/{customer_code}/fraud-lock")
+def update_customer_fraud_lock(customer_code: str, payload: FraudLockRequest, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE billing.customers
+                SET fraud_locked = %s,
+                    updated_at = now()
+                WHERE code = %s
+                RETURNING code, fraud_locked;
+            """, (payload.fraud_locked, customer_code))
+            row = cur.fetchone()
+
+            if row is None:
+                raise HTTPException(status_code=404, detail="Customer not found")
+
+            cur.execute("""
+                INSERT INTO billing.customer_admin_events(customer_code, event_type, details)
+                VALUES (%s, 'fraud_lock_update', jsonb_build_object('fraud_locked', %s));
+            """, (customer_code, payload.fraud_locked))
+
+            conn.commit()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/customers/{customer_code}/cdrs")
+def customer_cdrs(customer_code: str, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    call_id,
+                    src,
+                    dst,
+                    destination,
+                    duration_sec,
+                    rate_per_min,
+                    cost,
+                    currency,
+                    status,
+                    created_at
+                FROM billing.cdrs
+                WHERE customer_code = %s
+                ORDER BY created_at DESC
+                LIMIT 100;
+            """, (customer_code,))
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+@app.get("/api/v1/customers/{customer_code}/fraud-events")
+def customer_fraud_events(customer_code: str, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    created_at,
+                    event_type,
+                    severity,
+                    src,
+                    dst,
+                    normalized_dst,
+                    call_id,
+                    details
+                FROM billing.fraud_events
+                WHERE customer_code = %s
+                ORDER BY created_at DESC
+                LIMIT 100;
+            """, (customer_code,))
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+@app.get("/api/v1/customers/{customer_code}/routing-decisions")
+def customer_routing_decisions(customer_code: str, x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    created_at,
+                    src,
+                    dst,
+                    normalized_dst,
+                    selected_provider_code,
+                    route_allowed,
+                    route_reason,
+                    destination,
+                    sell_rate_per_min,
+                    buy_rate_per_min,
+                    margin_per_min,
+                    estimated_margin,
+                    pstn_enabled
+                FROM billing.routing_decisions
+                WHERE customer_code = %s
+                ORDER BY created_at DESC
+                LIMIT 100;
+            """, (customer_code,))
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
 
 
 @app.get("/api/v1/status")
@@ -238,7 +592,11 @@ def status(x_knvox_api_key: Optional[str] = Header(default=None)):
             (SELECT count(*) FROM billing.rate_prefixes WHERE enabled = true) AS active_rates,
             (SELECT count(*) FROM billing.blocked_prefixes) AS blocked_prefixes,
             (SELECT count(*) FROM billing.active_calls) AS active_calls,
-            (SELECT count(*) FROM billing.cdrs) AS cdrs;
+            (SELECT count(*) FROM billing.cdrs) AS cdrs,
+            (SELECT count(*) FROM billing.provider_accounts) AS providers,
+            (SELECT count(*) FROM billing.provider_routes WHERE enabled=true) AS provider_routes,
+            (SELECT count(*) FROM billing.routing_decisions) AS routing_decisions,
+            (SELECT count(*) FROM billing.fraud_events) AS fraud_events;
     """
 
     with db_connect() as conn:
