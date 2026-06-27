@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test
+.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test
 
 start:
 >./scripts/compose.sh up -d
@@ -85,3 +85,12 @@ billing-rate-check:
 
 billing-safety-test:
 >./scripts/billing-safety-test.sh
+
+api:
+>./scripts/compose.sh up -d --build billing-api
+
+api-status:
+>./scripts/api-status.sh
+
+api-auth-test:
+>./scripts/api-auth-test.sh
