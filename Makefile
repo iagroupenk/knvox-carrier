@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active
 
 start:
 >./scripts/compose.sh up -d
@@ -109,3 +109,16 @@ call-lifecycle-test:
 
 billing-cleanup-active:
 >./scripts/billing-cleanup-active.sh
+
+
+fraud-status:
+>./scripts/fraud-status.sh
+
+fraud-test:
+>./scripts/fraud-test.sh
+
+fraud-lock-customer:
+>./scripts/fraud-lock-customer.sh
+
+fraud-unlock-customer:
+>./scripts/fraud-unlock-customer.sh
