@@ -136,6 +136,7 @@
     <button onclick="loadBlocked()">Préfixes bloqués</button>
     <button onclick="loadProviders()">Routes fournisseurs</button>
     <button onclick="loadSipAccounts()">Comptes SIP</button>
+    <button onclick="loadCallControlMap()">Call Control</button>
     <button onclick="loadInvoices()">Exports factures</button>
     <hr>
     <label class="muted">Client code</label>
@@ -256,6 +257,10 @@ async function loadProviders() {
 
 async function loadSipAccounts() {
   safeRun("Comptes SIP", () => getJson("/sip-accounts"), true);
+}
+
+async function loadCallControlMap() {
+  safeRun("Call Control SIP -> Customer", () => getJson("/call-control/sip-account-map"), true);
 }
 
 async function loadInvoices() {

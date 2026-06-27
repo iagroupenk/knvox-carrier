@@ -160,7 +160,7 @@ class FraudLockRequest(BaseModel):
     fraud_locked: bool
 
 
-app = FastAPI(title=APP_NAME, version="1.4.5")
+app = FastAPI(title=APP_NAME, version="1.5.0")
 
 
 @app.get("/health")
@@ -1120,6 +1120,52 @@ def sip_account_events(x_knvox_api_key: Optional[str] = Header(default=None)):
                 FROM billing.sip_account_events
                 ORDER BY created_at DESC
                 LIMIT 100;
+            """)
+            rows = cur.fetchall()
+
+    return rows_to_json(rows)
+
+
+
+@app.get("/api/v1/call-control/resolve-sip-account/{username}")
+def call_control_resolve_sip_account(
+    username: str,
+    source_ip: str = Query(default=""),
+    x_knvox_api_key: Optional[str] = Header(default=None)
+):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM billing.resolve_sip_account_for_call(%s, %s);",
+                (username, source_ip),
+            )
+            row = cur.fetchone()
+
+    return row_to_json(dict(row))
+
+
+@app.get("/api/v1/call-control/sip-account-map")
+def call_control_sip_account_map(x_knvox_api_key: Optional[str] = Header(default=None)):
+    require_api_key(x_knvox_api_key)
+
+    with db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    sa.username,
+                    sa.customer_code,
+                    c.name AS customer_name,
+                    c.status AS customer_status,
+                    sa.enabled AS sip_enabled,
+                    sa.cps_limit,
+                    sa.max_concurrent_calls,
+                    sa.allowed_ip_cidr,
+                    sa.updated_at
+                FROM billing.sip_accounts sa
+                JOIN billing.customers c ON c.code = sa.customer_code
+                ORDER BY sa.username;
             """)
             rows = cur.fetchall()
 

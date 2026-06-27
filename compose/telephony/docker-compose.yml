@@ -46,7 +46,7 @@ services:
   kamailio:
     build:
       context: ./docker/kamailio
-    image: knvox/kamailio:1.3.7
+    image: knvox/kamailio:1.5.0
     container_name: knvox-kamailio
     restart: unless-stopped
     network_mode: host
@@ -58,6 +58,7 @@ services:
       BILLING_API_TOKEN: ${BILLING_API_TOKEN}
       KNVOX_AUTH_LOG: /var/log/knvox/auth.log
     volumes:
+      - ./.env:/opt/knvox-carrier/.env:ro
       - ./storage/telephony/kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
       - ./scripts/kamailio-authorize-call.sh:/usr/local/bin/knvox-authorize-call.sh:ro
       - ./scripts/kamailio-end-call.sh:/usr/local/bin/knvox-end-call.sh:ro
