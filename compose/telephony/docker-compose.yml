@@ -57,10 +57,12 @@ services:
       BILLING_API_PORT: ${BILLING_API_PORT}
       BILLING_API_TOKEN: ${BILLING_API_TOKEN}
       KNVOX_AUTH_LOG: /var/log/knvox/auth.log
+      KNVOX_REGISTER_LOG: /var/log/knvox/register-guard.log
     volumes:
       - ./.env:/opt/knvox-carrier/.env:ro
       - ./storage/telephony/kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
       - ./scripts/kamailio-authorize-call.sh:/usr/local/bin/knvox-authorize-call.sh:ro
+      - ./scripts/kamailio-register-guard.sh:/usr/local/bin/knvox-register-guard.sh:ro
       - ./scripts/kamailio-end-call.sh:/usr/local/bin/knvox-end-call.sh:ro
       - ./logs/kamailio-auth:/var/log/knvox
     healthcheck:
