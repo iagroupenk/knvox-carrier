@@ -71,3 +71,7 @@ Adds a documentation-only incident response and safe-mode escalation runbook. No
 ## V2.4.6 Security Review / Secrets Hygiene Runbook
 
 Adds a documentation-only security review and secrets hygiene runbook. No secret exposure, no production action, no PSTN activation, no provider activation, no production go-live.
+
+## V2.4.8 Admin Credential Rotation Runbook
+
+Adds a documentation-only admin credential rotation runbook. No credential rotation executed, no secret exposure, no PSTN activation, no provider activation, no production go-live.
