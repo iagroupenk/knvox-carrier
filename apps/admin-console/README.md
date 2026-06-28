@@ -59,3 +59,7 @@ Adds a documentation-only reverse proxy and TLS runbook. No Nginx activation, no
 ## V2.4.3 Backup Restore Drill Runbook
 
 Adds a documentation-only backup restore drill runbook. No restore execution, no database overwrite, no PSTN activation, no provider activation, no production go-live.
+
+## V2.4.4 Operations Checklist / Daily Safe-Mode Routine
+
+Adds a documentation-only daily safe-mode operations checklist. No production action, no PSTN activation, no provider activation, no real calls, no production go-live.
