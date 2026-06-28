@@ -49,3 +49,8 @@ Consolidates admin navigation, dashboard module cards and safe-mode footer in re
 ## V2.4.1 Backoffice Install Systemd Runbook
 
 Adds a read-only preflight script and a systemd activation runbook. Documentation only. No PSTN activation, no provider activation, no real calls, no production go-live.
+
+
+## V2.4.2 Backoffice Reverse Proxy TLS Runbook
+
+Adds a documentation-only reverse proxy and TLS runbook. No Nginx activation, no certificate issuance, no PSTN activation, no provider activation, no production go-live.
