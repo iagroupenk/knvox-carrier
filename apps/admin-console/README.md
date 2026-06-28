@@ -20,3 +20,8 @@ Adds `/admin/providers` and `/api/admin/providers` in read-only mode. Provider a
 ## V2.3.4 Billing CDR Dry-run Read-Only
 
 Adds `/admin/billing`, `/api/admin/billing`, `/api/admin/billing/summary` and `/api/admin/billing/dry-run-events` in read-only mode.
+
+
+## V2.3.5 Monitoring Read-Only
+
+Adds `/admin/monitoring` and `/api/admin/monitoring` in read-only mode.
