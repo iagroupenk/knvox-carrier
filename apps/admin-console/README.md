@@ -75,3 +75,7 @@ Adds a documentation-only security review and secrets hygiene runbook. No secret
 ## V2.4.8 Admin Credential Rotation Runbook
 
 Adds a documentation-only admin credential rotation runbook. No credential rotation executed, no secret exposure, no PSTN activation, no provider activation, no production go-live.
+
+## V2.4.9 Backoffice Operational Evidence Pack
+
+Adds a non-secret operational evidence pack runbook for the local admin backoffice. No secret exposure, no PSTN activation, no provider activation, no production go-live.
