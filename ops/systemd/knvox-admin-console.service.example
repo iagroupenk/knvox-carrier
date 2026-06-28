@@ -1,11 +1,13 @@
 [Unit]
-Description=KNVOX Admin Console Safe Mode
-After=network.target
+Description=KNVOX Admin Console
+After=network.target docker.service
+Requires=docker.service
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/knvox-carrier/apps/admin-console
-EnvironmentFile=/opt/knvox-carrier/secrets/admin-console.env
+WorkingDirectory=/opt/knvox-carrier
+EnvironmentFile=/opt/knvox-carrier/.env
+EnvironmentFile=-/etc/knvox/admin-console.env
 ExecStart=/usr/bin/node /opt/knvox-carrier/apps/admin-console/server.js
 Restart=on-failure
 RestartSec=5
