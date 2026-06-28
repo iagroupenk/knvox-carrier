@@ -79,3 +79,7 @@ Adds a documentation-only admin credential rotation runbook. No credential rotat
 ## V2.4.9 Backoffice Operational Evidence Pack
 
 Adds a non-secret operational evidence pack runbook for the local admin backoffice. No secret exposure, no PSTN activation, no provider activation, no production go-live.
+
+## V2.5.0 Safe Pre-Production Backoffice Closure
+
+Closes the safe pre-production backoffice baseline with local admin access active, PSTN OFF, providers sandbox/off, no real calls and no production go-live.
