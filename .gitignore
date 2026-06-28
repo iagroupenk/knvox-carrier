@@ -27,3 +27,4 @@ configs/*.tgz
 knvox-v1-*.sh
 
 /exports/
+/secrets/
