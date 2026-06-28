@@ -28,3 +28,7 @@ knvox-v1-*.sh
 
 /exports/
 /secrets/
+
+# Local one-shot installer / hotfix scripts
+/knvox-v*.sh
+/fix-v*.sh
