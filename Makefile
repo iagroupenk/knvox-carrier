@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events call-control-multi call-control-multi-test call-control-resolve call-control-map fs-sip-sync fs-sip-provisioning-test fs-sip-provisioning-status sip-card sip-reg-status sip-reg-check sip-reg-test sip-tools-install sip-live-capture kamailio-auth-tail sip-test-reset
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events call-control-multi call-control-multi-test call-control-resolve call-control-map fs-sip-sync fs-sip-provisioning-test fs-sip-provisioning-status sip-card sip-reg-status sip-reg-check sip-reg-test sip-tools-install sip-live-capture kamailio-auth-tail sip-test-reset provider-trunk-list provider-trunk-upsert provider-trunk-status-set provider-trunk-events provider-trunk-generate provider-trunk-sandbox-test
 
 start:
 >./scripts/compose.sh up -d
@@ -310,3 +310,22 @@ kamailio-auth-tail:
 
 sip-test-reset:
 >./scripts/sip-test-reset.sh
+
+
+provider-trunk-list:
+>./scripts/provider-trunk-list.sh
+
+provider-trunk-upsert:
+>./scripts/provider-trunk-upsert.sh $${PROVIDER_CODE:-SIM-FR-1} "$${PROVIDER_NAME:-Sandbox Provider}" $${PROVIDER_HOST:-sandbox.invalid} $${PROVIDER_PORT:-5060} $${PROVIDER_TRANSPORT:-udp} $${PROVIDER_ENABLED:-false}
+
+provider-trunk-status-set:
+>./scripts/provider-trunk-status-set.sh $${PROVIDER_CODE:-SIM-FR-1} $${PROVIDER_ENABLED:-false}
+
+provider-trunk-events:
+>./scripts/provider-trunk-events.sh
+
+provider-trunk-generate:
+>./scripts/provider-trunk-generate-freeswitch.sh
+
+provider-trunk-sandbox-test:
+>./scripts/provider-trunk-sandbox-test.sh
