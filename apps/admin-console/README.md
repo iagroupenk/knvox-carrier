@@ -15,3 +15,8 @@ Adds `/admin/sip-accounts` and `/api/admin/sip-accounts` in read-only mode.
 ## V2.3.3 Providers Read-Only
 
 Adds `/admin/providers` and `/api/admin/providers` in read-only mode. Provider activation and gateway XML generation are not available.
+
+
+## V2.3.4 Billing CDR Dry-run Read-Only
+
+Adds `/admin/billing`, `/api/admin/billing`, `/api/admin/billing/summary` and `/api/admin/billing/dry-run-events` in read-only mode.
