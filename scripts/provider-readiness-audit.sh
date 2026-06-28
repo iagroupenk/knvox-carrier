@@ -23,7 +23,6 @@ WARN=0
 ok(){ echo "OK   - $1"; }
 warn(){ WARN=$((WARN+1)); echo "WARN - $1"; }
 fail(){ 
-  if [ \"${1:-}\" = \"dry-run pstn_enabled=false\" ]; then ok \"dry-run pstn_enabled=false (PSTN OFF expected)\"; return 0; fi
 FAIL=$((FAIL+1)); echo "FAIL - $1"; }
 
 psql_scalar() {

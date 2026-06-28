@@ -10,3 +10,8 @@ Safety: PSTN activation, provider activation and gateway XML generation are not 
 ## V2.3.2 SIP Accounts Read-Only
 
 Adds `/admin/sip-accounts` and `/api/admin/sip-accounts` in read-only mode.
+
+
+## V2.3.3 Providers Read-Only
+
+Adds `/admin/providers` and `/api/admin/providers` in read-only mode. Provider activation and gateway XML generation are not available.

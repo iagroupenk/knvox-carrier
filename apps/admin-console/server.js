@@ -52,7 +52,45 @@ function sipAccountsPage(s,u){
   return layout("SIP Accounts",`<section class="hero"><h1>SIP Accounts</h1><p>Comptes SIP en lecture seule. Aucune création, modification, suppression ou activation PSTN.</p></section><form class="search"><input name="q" value="${esc(q)}" placeholder="Recherche SIP, client, extension"><button>Rechercher</button><a class="btn secondary" href="/admin/sip-accounts">Reset</a></form><section class="box"><h2>Comptes SIP détectés (${list.length})</h2><table><thead><tr><th>ID</th><th>Client</th><th>Username</th><th>Extension</th><th>Enabled</th><th>Créé</th><th>MAJ</th></tr></thead><tbody>${trs||`<tr><td colspan="7">Aucun compte SIP détecté</td></tr>`}</tbody></table></section>`,s);
 }
 
+
+function tableColumns(table){
+  return rows("SELECT column_name FROM information_schema.columns WHERE table_schema=$$billing$$ AND table_name="+lit(table)+" ORDER BY ordinal_position;").map(r=>r[0]);
+}
+function providerTrunks(q=""){
+  let deny=/(password|secret|token|private|auth_key|api_key)/i;
+  let preferred=["id","provider_code","code","name","enabled","sandbox_only","credential_ref","host","proxy","prefix","rate_per_minute","cost_per_minute","margin_per_minute","created_at","updated_at"];
+  let all=tableColumns("provider_trunks").filter(c=>!deny.test(c));
+  let cols=preferred.filter(c=>all.includes(c));
+  all.forEach(c=>{if(!cols.includes(c))cols.push(c)});
+  if(!cols.length)return[];
+  let sql="SELECT "+cols.map(c=>String.fromCharCode(34)+c+String.fromCharCode(34)).join(",")+" FROM billing.provider_trunks ORDER BY 1 LIMIT 1000;";
+  let data=rows(sql);
+  q=String(q||"").toLowerCase();
+  return data.map(r=>{
+    let o={};
+    cols.forEach((c,i)=>o[c]=r[i]??"");
+    return {
+      id:o.id||"",
+      provider_code:o.provider_code||o.code||o.name||o.id||"",
+      enabled:o.enabled||"",
+      sandbox_only:o.sandbox_only||"",
+      credential_ref:o.credential_ref||"",
+      host:o.host||o.proxy||"",
+      margin_per_minute:o.margin_per_minute||"",
+      created_at:o.created_at||"",
+      updated_at:o.updated_at||"",
+      raw:o
+    };
+  }).filter(a=>!q||JSON.stringify(a).toLowerCase().includes(q));
+}
+function providersPage(s,u){
+  let q=u.searchParams.get("q")||"";
+  let list=providerTrunks(q);
+  let trs=list.map(a=>`<tr><td>${esc(a.id)}</td><td>${esc(a.provider_code)}</td><td><span class="pill">${esc(a.enabled)}</span></td><td><span class="pill">${esc(a.sandbox_only)}</span></td><td>${esc(a.credential_ref)}</td><td>${esc(a.host)}</td><td>${esc(a.margin_per_minute)}</td><td>${esc(a.updated_at)}</td></tr>`).join("");
+  return layout("Providers",`<section class="hero"><h1>Providers / Trunks</h1><p>Lecture seule. Aucun trunk activable, aucune gateway XML générée, PSTN OFF.</p></section><form class="search"><input name="q" value="${esc(q)}" placeholder="Recherche provider, trunk, credential_ref"><button>Rechercher</button><a class="btn secondary" href="/admin/providers">Reset</a></form><section class="box"><h2>Providers détectés (${list.length})</h2><table><thead><tr><th>ID</th><th>Provider</th><th>Enabled</th><th>Sandbox</th><th>Credential ref</th><th>Host</th><th>Marge/min</th><th>MAJ</th></tr></thead><tbody>${trs||`<tr><td colspan="8">Aucun provider détecté</td></tr>`}</tbody></table></section>`,s);
+}
+
 function clientsPage(s,u){let q=u.searchParams.get("q")||"",list=clients(q),trs=list.map(c=>`<tr><td>${esc(c.customer_code)}</td><td>${esc(c.name)}</td><td><span class="pill">${esc(c.status)}</span></td><td>${c.sip_accounts}</td><td>${c.dry_run_events}</td><td><a href="/admin/clients/${encodeURIComponent(c.customer_code)}">Ouvrir</a></td></tr>`).join("");return layout("Clients",`<section class="hero"><h1>Gestion clients</h1><p>Liste, recherche et fiche client en lecture seule.</p></section><form class="search"><input name="q" value="${esc(q)}" placeholder="Recherche client"><button>Rechercher</button><a class="btn secondary" href="/admin/clients">Reset</a></form><section class="box"><h2>Clients détectés (${list.length})</h2><table><thead><tr><th>Code client</th><th>Nom</th><th>Statut</th><th>SIP</th><th>Dry-run</th><th>Action</th></tr></thead><tbody>${trs||`<tr><td colspan="6">Aucun client détecté</td></tr>`}</tbody></table></section>`,s)}
 function clientPage(s,code){let c=clients("").find(x=>x.customer_code===code)||{customer_code:code,name:code,status:"unknown",sip_accounts:0,dry_run_events:0};return layout("Fiche client",`<section class="hero"><h1>Fiche client ${esc(code)}</h1><p>Lecture seule. Aucune modification client, SIP, provider ou PSTN.</p><a class="btn secondary" href="/admin/clients">Retour</a></section><section class="box"><div class="kv"><span>Code</span><b>${esc(c.customer_code)}</b></div><div class="kv"><span>Nom</span><b>${esc(c.name)}</b></div><div class="kv"><span>Statut</span><b>${esc(c.status)}</b></div><div class="kv"><span>Comptes SIP</span><b>${c.sip_accounts}</b></div><div class="kv"><span>Événements dry-run</span><b>${c.dry_run_events}</b></div><p><span class="safe">PSTN OFF</span> <span class="safe">NO_DIAL_NO_PSTN</span> <span class="safe">READ_ONLY</span></p></section>`,s)}
 function body(req){return new Promise(r=>{let d="";req.on("data",c=>d+=c);req.on("end",()=>r(d))})}
-http.createServer(async(req,res)=>{let u=new URL(req.url,"http://x");try{if(u.pathname==="/admin.css")return send(res,200,fs.readFileSync(path.join(__dirname,"public/admin.css")),"text/css");if(u.pathname==="/")return redirect(res,"/admin");if(u.pathname==="/admin/login"){if(req.method==="POST"){let f=new URLSearchParams(await body(req)),ok=eq(f.get("username"),U)&&(P?eq(f.get("password"),P):eq(sha(f.get("password")),PH));if(!ok)return send(res,401,login("Identifiants invalides"));return send(res,302,"","text/plain",{"Set-Cookie":`${CK}=${encodeURIComponent(session(U))}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800`,"Location":"/admin"})}return send(res,200,login())}if(u.pathname==="/admin/logout")return send(res,302,"","text/plain",{"Set-Cookie":`${CK}=; Path=/; Max-Age=0`,"Location":"/admin/login"});let s=readSession(req);if(!s)return redirect(res,"/admin/login");if(u.pathname==="/admin")return send(res,200,dashboard(s));if(u.pathname==="/admin/clients")return send(res,200,clientsPage(s,u));if(u.pathname==="/admin/sip-accounts")return send(res,200,sipAccountsPage(s,u));if(u.pathname.startsWith("/admin/clients/"))return send(res,200,clientPage(s,decodeURIComponent(u.pathname.replace("/admin/clients/",""))));if(u.pathname==="/api/admin/status")return send(res,200,JSON.stringify(status(),null,2),"application/json");if(u.pathname==="/api/admin/clients")return send(res,200,JSON.stringify({clients:clients(u.searchParams.get("q")||"")},null,2),"application/json");if(u.pathname==="/api/admin/sip-accounts")return send(res,200,JSON.stringify({sip_accounts:sipAccounts(u.searchParams.get("q")||"")},null,2),"application/json");return send(res,404,"404")}catch(e){send(res,500,JSON.stringify({error:"admin_console_error",message:String(e.message||e)}),"application/json")}}).listen(PORT,HOST,()=>console.log(`KNVOX admin listening http://${HOST}:${PORT} READ_ONLY PSTN_OFF`));
+http.createServer(async(req,res)=>{let u=new URL(req.url,"http://x");try{if(u.pathname==="/admin.css")return send(res,200,fs.readFileSync(path.join(__dirname,"public/admin.css")),"text/css");if(u.pathname==="/")return redirect(res,"/admin");if(u.pathname==="/admin/login"){if(req.method==="POST"){let f=new URLSearchParams(await body(req)),ok=eq(f.get("username"),U)&&(P?eq(f.get("password"),P):eq(sha(f.get("password")),PH));if(!ok)return send(res,401,login("Identifiants invalides"));return send(res,302,"","text/plain",{"Set-Cookie":`${CK}=${encodeURIComponent(session(U))}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800`,"Location":"/admin"})}return send(res,200,login())}if(u.pathname==="/admin/logout")return send(res,302,"","text/plain",{"Set-Cookie":`${CK}=; Path=/; Max-Age=0`,"Location":"/admin/login"});let s=readSession(req);if(!s)return redirect(res,"/admin/login");if(u.pathname==="/admin")return send(res,200,dashboard(s));if(u.pathname==="/admin/clients")return send(res,200,clientsPage(s,u));if(u.pathname==="/admin/sip-accounts")return send(res,200,sipAccountsPage(s,u));if(u.pathname==="/admin/providers")return send(res,200,providersPage(s,u));if(u.pathname.startsWith("/admin/clients/"))return send(res,200,clientPage(s,decodeURIComponent(u.pathname.replace("/admin/clients/",""))));if(u.pathname==="/api/admin/status")return send(res,200,JSON.stringify(status(),null,2),"application/json");if(u.pathname==="/api/admin/clients")return send(res,200,JSON.stringify({clients:clients(u.searchParams.get("q")||"")},null,2),"application/json");if(u.pathname==="/api/admin/sip-accounts")return send(res,200,JSON.stringify({sip_accounts:sipAccounts(u.searchParams.get("q")||"")},null,2),"application/json");if(u.pathname==="/api/admin/providers")return send(res,200,JSON.stringify({providers:providerTrunks(u.searchParams.get("q")||"")},null,2),"application/json");return send(res,404,"404")}catch(e){send(res,500,JSON.stringify({error:"admin_console_error",message:String(e.message||e)}),"application/json")}}).listen(PORT,HOST,()=>console.log(`KNVOX admin listening http://${HOST}:${PORT} READ_ONLY PSTN_OFF`));
