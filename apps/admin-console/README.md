@@ -25,3 +25,8 @@ Adds `/admin/billing`, `/api/admin/billing`, `/api/admin/billing/summary` and `/
 ## V2.3.5 Monitoring Read-Only
 
 Adds `/admin/monitoring` and `/api/admin/monitoring` in read-only mode.
+
+
+## V2.3.6 Evidence Center Read-Only
+
+Adds `/admin/evidence` and `/api/admin/evidence` in metadata-only read-only mode.
