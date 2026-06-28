@@ -54,3 +54,8 @@ Adds a read-only preflight script and a systemd activation runbook. Documentatio
 ## V2.4.2 Backoffice Reverse Proxy TLS Runbook
 
 Adds a documentation-only reverse proxy and TLS runbook. No Nginx activation, no certificate issuance, no PSTN activation, no provider activation, no production go-live.
+
+
+## V2.4.3 Backup Restore Drill Runbook
+
+Adds a documentation-only backup restore drill runbook. No restore execution, no database overwrite, no PSTN activation, no provider activation, no production go-live.
