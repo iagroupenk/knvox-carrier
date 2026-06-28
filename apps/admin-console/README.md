@@ -83,3 +83,7 @@ Adds a non-secret operational evidence pack runbook for the local admin backoffi
 ## V2.5.0 Safe Pre-Production Backoffice Closure
 
 Closes the safe pre-production backoffice baseline with local admin access active, PSTN OFF, providers sandbox/off, no real calls and no production go-live.
+
+## V2.5.1 Production Core Readiness Inventory
+
+Adds the first production-focused readiness inventory after securing web admin access through Traefik. PSTN remains OFF, providers remain sandbox/off, no real calls, no production go-live.
