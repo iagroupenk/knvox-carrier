@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events call-control-multi call-control-multi-test call-control-resolve call-control-map fs-sip-sync fs-sip-provisioning-test fs-sip-provisioning-status sip-card sip-reg-status sip-reg-check sip-reg-test sip-tools-install sip-live-capture kamailio-auth-tail sip-test-reset provider-trunk-list provider-trunk-upsert provider-trunk-status-set provider-trunk-events provider-trunk-generate provider-trunk-sandbox-test pstn-force-off pstn-status pstn-safety-audit pstn-enable-request provider-vault-test provider-vault-audit provider-credential-list provider-credential-show provider-credential-set provider-gateway-vault-test provider-gateway-vault-build provider-gateway-vault-audit
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events call-control-multi call-control-multi-test call-control-resolve call-control-map fs-sip-sync fs-sip-provisioning-test fs-sip-provisioning-status sip-card sip-reg-status sip-reg-check sip-reg-test sip-tools-install sip-live-capture kamailio-auth-tail sip-test-reset provider-trunk-list provider-trunk-upsert provider-trunk-status-set provider-trunk-events provider-trunk-generate provider-trunk-sandbox-test pstn-force-off pstn-status pstn-safety-audit pstn-enable-request provider-vault-test provider-vault-audit provider-credential-list provider-credential-show provider-credential-set provider-gateway-vault-test provider-gateway-vault-build provider-gateway-vault-audit provider-readiness-test provider-readiness-audit external-call-dry-run external-call-dry-run-test
 
 start:
 >./scripts/compose.sh up -d
@@ -368,3 +368,17 @@ provider-gateway-vault-build:
 
 provider-gateway-vault-audit:
 >./scripts/provider-gateway-vault-audit.sh
+
+
+provider-readiness-test:
+>./scripts/provider-readiness-test.sh
+
+provider-readiness-audit:
+>./scripts/provider-readiness-audit.sh $${PROVIDER_CODE:-SIM-FR-1} $${DST:-33612345678} $${CUSTOMER_CODE:-TEST1000} $${SRC:-1000}
+
+
+external-call-dry-run:
+>./scripts/external-call-dry-run.sh $${DST:-33612345678}
+
+external-call-dry-run-test:
+>./scripts/external-call-dry-run-test.sh
