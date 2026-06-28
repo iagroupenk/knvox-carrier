@@ -67,3 +67,7 @@ Adds a documentation-only daily safe-mode operations checklist. No production ac
 ## V2.4.5 Incident Response / Safe-Mode Escalation Runbook
 
 Adds a documentation-only incident response and safe-mode escalation runbook. No production action, no PSTN activation, no provider activation, no restore execution, no production go-live.
+
+## V2.4.6 Security Review / Secrets Hygiene Runbook
+
+Adds a documentation-only security review and secrets hygiene runbook. No secret exposure, no production action, no PSTN activation, no provider activation, no production go-live.
