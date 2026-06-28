@@ -45,3 +45,7 @@ Adds `/admin/readiness` and `/api/admin/readiness` with safe pre-production read
 ## V2.3.9 UI Consolidation Navigation Polish
 
 Consolidates admin navigation, dashboard module cards and safe-mode footer in read-only mode.
+
+## V2.4.1 Backoffice Install Systemd Runbook
+
+Adds a read-only preflight script and a systemd activation runbook. Documentation only. No PSTN activation, no provider activation, no real calls, no production go-live.
