@@ -1,0 +1,15 @@
+[Unit]
+Description=KNVOX Admin Console Safe Mode
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/knvox-carrier/apps/admin-console
+EnvironmentFile=/opt/knvox-carrier/secrets/admin-console.env
+ExecStart=/usr/bin/node /opt/knvox-carrier/apps/admin-console/server.js
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

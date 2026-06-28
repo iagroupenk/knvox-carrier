@@ -1,0 +1,15 @@
+{
+  "name": "knvox-admin-console",
+  "version": "2.3.0",
+  "private": true,
+  "description": "KNVOX safe-mode admin console baseline",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}
