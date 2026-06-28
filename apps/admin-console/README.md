@@ -40,3 +40,8 @@ Adds `/admin/access` and `/api/admin/access` with read-only RBAC/access-hardenin
 ## V2.3.8 Production Readiness Checklist Read-Only
 
 Adds `/admin/readiness` and `/api/admin/readiness` with safe pre-production readiness checks in read-only mode.
+
+
+## V2.3.9 UI Consolidation Navigation Polish
+
+Consolidates admin navigation, dashboard module cards and safe-mode footer in read-only mode.
