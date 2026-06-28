@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events call-control-multi call-control-multi-test call-control-resolve call-control-map fs-sip-sync fs-sip-provisioning-test fs-sip-provisioning-status sip-card sip-reg-status sip-reg-check sip-reg-test sip-tools-install sip-live-capture kamailio-auth-tail sip-test-reset provider-trunk-list provider-trunk-upsert provider-trunk-status-set provider-trunk-events provider-trunk-generate provider-trunk-sandbox-test
+.PHONY: fraud-status fraud-test fraud-lock-customer fraud-unlock-customer  start stop restart status health logs backup pull update firewall telephony telephony-status fs sip-users firewall-telephony sip-security-test sip-security-logs billing billing-status billing-db-init billing-sample-data billing-cdr-test cgr-console billing-safety-init billing-authorize billing-balance billing-rate-check billing-safety-test api api-status api-auth-test call-control call-control-test call-lifecycle call-lifecycle-test billing-cleanup-active provider-routing provider-routes provider-route-test customer-admin customer-admin-test customer-list customer-create customer-show customer-credit customer-limits customer-status customer-fraud-lock customer-cdrs rate-admin rate-admin-test rate-list rate-upsert rate-disable blocked-prefix-list blocked-prefix-add blocked-prefix-delete provider-route-upsert billing-reports billing-reports-test report-usage report-margin report-wallet report-cdr-csv report-invoice-export report-invoice-list portal portal-status portal-test portal-public portal-public-test portal-public-status sip-account-admin sip-account-test sip-account-list sip-account-create sip-account-show customer-sip-accounts sip-account-status sip-account-events call-control-multi call-control-multi-test call-control-resolve call-control-map fs-sip-sync fs-sip-provisioning-test fs-sip-provisioning-status sip-card sip-reg-status sip-reg-check sip-reg-test sip-tools-install sip-live-capture kamailio-auth-tail sip-test-reset provider-trunk-list provider-trunk-upsert provider-trunk-status-set provider-trunk-events provider-trunk-generate provider-trunk-sandbox-test pstn-force-off pstn-status pstn-safety-audit pstn-enable-request
 
 start:
 >./scripts/compose.sh up -d
@@ -329,3 +329,16 @@ provider-trunk-generate:
 
 provider-trunk-sandbox-test:
 >./scripts/provider-trunk-sandbox-test.sh
+
+
+pstn-force-off:
+>./scripts/pstn-force-off.sh
+
+pstn-status:
+>./scripts/pstn-status.sh
+
+pstn-safety-audit:
+>./scripts/pstn-safety-audit.sh
+
+pstn-enable-request:
+>./scripts/pstn-enable-request.sh
